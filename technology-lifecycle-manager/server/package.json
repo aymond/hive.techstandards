@@ -1,0 +1,21 @@
+{
+  "name": "technology-lifecycle-manager-server",
+  "version": "1.0.0",
+  "description": "Backend for the Technology Lifecycle Management platform",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
