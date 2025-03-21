@@ -142,3 +142,72 @@ These issues are common in older react-scripts versions and don't affect the act
 ## License
 
 This project is licensed under the MIT License.
+
+## Running with Docker
+
+### Prerequisites
+
+- Docker and Docker Compose installed on your system
+- Git (to clone the repository)
+
+### Setup and Installation
+
+1. Clone the repository:
+   ```bash
+   git clone <your-repository-url>
+   cd <repository-directory>
+   ```
+
+2. Create a `.env` file in the root directory (or modify the existing one):
+   ```
+   MONGO_URI=mongodb://mongo:27017/todo-app
+   NODE_ENV=production
+   PORT=5000
+   JWT_SECRET=your_jwt_secret_key_here
+   ```
+
+3. Build and start the containers:
+   ```bash
+   docker-compose up -d --build
+   ```
+
+4. Access the application:
+   - Frontend: http://localhost
+   - Backend API: http://localhost/api
+   - Direct backend access: http://localhost:5000
+
+### Stopping the Application
+
+```bash
+docker-compose down
+```
+
+To remove volumes (database data) as well:
+```bash
+docker-compose down -v
+```
+
+## Development
+
+For development purposes, you can still run the applications separately:
+
+### Client
+```bash
+cd client
+npm install
+npm start
+```
+
+### Server
+```bash
+cd server
+npm install
+npm start
+```
+
+## Notes
+
+- The frontend is built with React and served by Nginx
+- The backend is an Express.js API
+- MongoDB is used as the database
+- All services are containerized and orchestrated with Docker Compose

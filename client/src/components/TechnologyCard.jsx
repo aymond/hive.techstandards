@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './TechnologyCard.css';
 
-const TechnologyCard = ({ technology }) => {
+const TechnologyCard = ({ technology, onEdit, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   
   const formatDate = (dateString) => {
@@ -69,12 +69,31 @@ const TechnologyCard = ({ technology }) => {
         )}
       </div>
       
-      <button 
-        className="details-button"
-        onClick={() => setExpanded(!expanded)}
-      >
-        {expanded ? 'Show Less' : 'Show Details'}
-      </button>
+      <div className="tech-card-actions">
+        <button 
+          className="details-button"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? 'Show Less' : 'Show Details'}
+        </button>
+        
+        <div className="management-buttons">
+          <button 
+            className="btn btn-edit" 
+            onClick={onEdit}
+            title="Edit this technology"
+          >
+            Edit
+          </button>
+          <button 
+            className="btn btn-delete" 
+            onClick={onDelete}
+            title="Delete this technology"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -9,8 +9,25 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// MongoDB connection code - only if MongoDB package is already installed
+try {
+  // Check if mongoose is installed before requiring it
+  const mongoose = require('mongoose');
+  
+  // Connect to MongoDB using the MONGO_URI from environment variables
+  mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/todo-app')
+    .then(() => console.log('MongoDB connected'))
+    .catch(err => {
+      console.error('MongoDB connection error:', err);
+      console.log('Continuing without MongoDB as it might not be required for initial setup');
+    });
+} catch (err) {
+  console.log('Mongoose not installed, continuing without MongoDB connection');
+  console.log('If MongoDB is needed, install it with: npm install mongoose');
+}
+
 // Sample data
-const technologies = [
+let technologies = [
   {
     id: 1,
     name: "React",
@@ -114,8 +131,68 @@ const technologies = [
 ];
 
 // Routes
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
+});
+
+// GET all technologies
 app.get('/api/technologies', (req, res) => {
   res.json(technologies);
+});
+
+// GET single technology by ID
+app.get('/api/technologies/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const technology = technologies.find(tech => tech.id === id);
+  
+  if (!technology) {
+    return res.status(404).json({ message: 'Technology not found' });
+  }
+  
+  res.json(technology);
+});
+
+// POST - Create new technology
+app.post('/api/technologies', (req, res) => {
+  const newTechnology = req.body;
+  
+  // Generate a new ID (simple approach for demo)
+  const maxId = technologies.reduce((max, tech) => Math.max(max, tech.id), 0);
+  newTechnology.id = maxId + 1;
+  
+  technologies.push(newTechnology);
+  res.status(201).json(newTechnology);
+});
+
+// PUT - Update technology
+app.put('/api/technologies/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = technologies.findIndex(tech => tech.id === id);
+  
+  if (index === -1) {
+    return res.status(404).json({ message: 'Technology not found' });
+  }
+  
+  // Preserve the ID
+  const updatedTechnology = { ...req.body, id };
+  technologies[index] = updatedTechnology;
+  
+  res.json(updatedTechnology);
+});
+
+// DELETE - Remove technology
+app.delete('/api/technologies/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = technologies.findIndex(tech => tech.id === id);
+  
+  if (index === -1) {
+    return res.status(404).json({ message: 'Technology not found' });
+  }
+  
+  const deletedTechnology = technologies[index];
+  technologies = technologies.filter(tech => tech.id !== id);
+  
+  res.json(deletedTechnology);
 });
 
 // If in production, serve static files from client/build
