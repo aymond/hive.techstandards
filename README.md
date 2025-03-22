@@ -1,213 +1,178 @@
 # Technology Lifecycle Manager
 
-A web-based Technology Lifecycle Management platform that allows developers to view, filter, and manage technology lifecycles.
+A comprehensive platform for tracking, evaluating, and managing your organization's technology portfolio.
 
-## Features
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Version](https://img.shields.io/badge/version-0.3.0-green.svg)
 
-- View technologies in a responsive, card-based layout
-- Filter technologies by capability, vendor, and lifecycle status
-- Expandable technology cards with detailed information
-- Backend API that serves technology data
-- Responsive design that works on both desktop and mobile devices
+## Overview
 
-## Project Structure
+The Technology Lifecycle Manager helps organizations make informed decisions about their technology stack by providing:
 
-```
-technology-lifecycle-manager/
-├── client/                   # Frontend React application
-│   ├── public/               # Static files
-│   ├── src/                  # Source code
-│   │   ├── components/       # React components
-│   │   ├── data/             # Sample data (fallback)
-│   │   ├── services/         # API services
-│   │   ├── App.jsx           # Main App component
-│   │   └── index.js          # Entry point
-│   └── package.json          # Frontend dependencies
-├── server/                   # Backend Express server
-│   ├── src/                  # Source code
-│   │   └── index.js          # Express server
-│   └── package.json          # Backend dependencies
-└── README.md                 # Project documentation
-```
+- **Technology Tracking**: Maintain a comprehensive catalog of all technologies used in your organization
+- **Lifecycle Management**: Track adoption, maturity, and retirement phases of technologies
+- **Multi-Tenant Support**: Manage technology portfolios across different departments or organizations
+- **Change Requests**: Streamline the process of requesting and approving technology changes
+- **Role-Based Access**: Control permissions with admin, editor, and viewer user roles
 
-## Technologies Used
+## Table of Contents
 
-- **Frontend**: React, CSS3
-- **Backend**: Node.js, Express
-- **Deployment**: Can be deployed to any static hosting (frontend) and Node.js hosting service (backend)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Development](#development)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
 
-## Getting Started
+## Installation
 
 ### Prerequisites
 
-- Node.js (v14 or later)
-- npm (v6 or later)
+- Docker and Docker Compose
+- Node.js 14+ (for development)
+- MongoDB (automatically handled via Docker)
 
-### Installation
+### Quick Start with Docker
 
 1. Clone the repository:
-   ```
+   ```bash
    git clone https://github.com/yourusername/technology-lifecycle-manager.git
    cd technology-lifecycle-manager
    ```
 
-2. Install dependencies for both the client and server:
+2. Start the application:
+   ```bash
+   docker-compose up -d
    ```
-   # Install client dependencies
-   cd client
+
+3. Access the application:
+   - Web UI: http://localhost:5080
+   - API: http://localhost:5081/api
+
+## Usage
+
+### Registration and Login
+
+1. Navigate to http://localhost:5080
+2. Click "Register" to create a new account
+3. If you have a tenant key, enter it during registration
+4. Login with your credentials
+
+### Managing Technologies
+
+1. From the dashboard, click "Add New Technology" to create a new entry
+2. Fill in the technology details:
+   - Name
+   - Vendor
+   - Capability
+   - Lifecycle Status
+   - Description
+3. Use the filters to search and organize your technology portfolio
+4. Edit or delete technologies as needed
+
+## Features
+
+### Authentication System
+- User registration with email/password
+- Secure login with JWT token authentication
+- Protected routes requiring authentication
+
+### Technology Management
+- Complete CRUD operations for technology items
+- Filterable technology list by capability, vendor, and lifecycle status
+- Public endpoint for non-authenticated access to technology data
+
+### User Interface
+- Modern, responsive design
+- Professional landing page
+- Intuitive dashboard
+- Easy-to-use forms
+
+## Architecture
+
+The application follows a modern client-server architecture:
+
+- **Frontend**: React, React Router, Axios
+- **Backend**: Node.js, Express
+- **Database**: MongoDB
+- **Authentication**: JWT, Passport
+- **Deployment**: Docker, Nginx
+
+## Development
+
+### Setting Up a Development Environment
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   # Server dependencies
+   cd server
    npm install
-   
-   # Install server dependencies
-   cd ../server
+
+   # Client dependencies
+   cd ../client
    npm install
    ```
 
-### Running the Application
-
-1. Start the backend server:
+3. Create a `.env` file in the server directory with the following variables:
    ```
-   # From the server directory
+   NODE_ENV=development
+   MONGO_URI=mongodb://localhost:27017/tech-standards
+   JWT_SECRET=your-jwt-secret
+   SESSION_SECRET=your-session-secret
+   PORT=5081
+   ```
+
+4. Start development servers:
+   ```bash
+   # Start the backend server
+   cd server
    npm run dev
-   ```
 
-2. Start the frontend development server:
-   ```
-   # From the client directory
+   # Start the frontend client
+   cd client
    npm start
    ```
 
-3. Open your browser and navigate to:
-   ```
-   http://localhost:3000
-   ```
+## Testing
 
-> **Note:** If you encounter OpenSSL-related errors when starting the React application, the project includes configuration in `.env` and `package.json` that sets the `NODE_OPTIONS=--openssl-legacy-provider` flag to resolve these issues.
+Run automated tests:
 
-## Building for Production
+```bash
+# Backend tests
+cd server
+npm test
 
-### Frontend Build
-
-```
-# From the client directory
-npm run build
+# Frontend tests
+cd client
+npm test
 ```
 
-This will create a `build` directory with optimized production files that can be deployed to any static hosting service.
+## Deployment
 
-### Backend Production
+The application is containerized and can be deployed to any environment that supports Docker.
 
-For production, you can set the `NODE_ENV` environment variable to "production" when starting the server:
+### Production Deployment
 
-```
-# From the server directory
-NODE_ENV=production npm start
-```
-
-In production mode, the server will serve the static files from the client's build directory.
-
-## Design Decisions
-
-- **Component Structure**: Created reusable components (TechnologyCard, TechnologyFilter, TechnologyList) for better maintainability and reusability.
-- **Responsive Design**: Used modern CSS with media queries to ensure the application works well on different screen sizes.
-- **API Integration**: Added a service layer for API communication with fallback to local data for better reliability.
-- **Clean UI**: Designed with a focus on readability and usability, with clear visual differentiation for different lifecycle statuses.
-
-## Future Enhancements
-
-- Authentication system for admin users
-- Technology editing and creation functionality
-- Pagination or infinite scrolling for large technology lists
-- Advanced filtering and search capabilities
-- Dark mode theme
-- Export functionality (CSV, PDF, etc.)
-
-## Security Notes
-
-Please note that the current version of this project contains some security vulnerabilities in its dependencies. These are primarily related to development dependencies and don't affect the application's runtime functionality.
-
-In a production environment, it's recommended to:
-
-1. Run `npm audit` to check for vulnerable dependencies
-2. Use `npm audit fix` to fix vulnerabilities that don't require breaking changes
-3. For more critical security issues, consider creating a new React application using the latest version of create-react-app and migrating the components
-
-The current vulnerabilities are related to older versions of:
-- postcss
-- nth-check
-- svgo
-- and other development dependencies
-
-These issues are common in older react-scripts versions and don't affect the actual application functionality for demonstration purposes.
-
-## License
-
-This project is licensed under the MIT License.
-
-## Running with Docker
-
-### Prerequisites
-
-- Docker and Docker Compose installed on your system
-- Git (to clone the repository)
-
-### Setup and Installation
-
-1. Clone the repository:
-   ```bash
-   git clone <your-repository-url>
-   cd <repository-directory>
-   ```
-
-2. Create a `.env` file in the root directory (or modify the existing one):
-   ```
-   MONGO_URI=mongodb://mongo:27017/todo-app
-   NODE_ENV=production
-   PORT=5000
-   JWT_SECRET=your_jwt_secret_key_here
-   ```
-
-3. Build and start the containers:
+1. Update environment variables in `docker-compose.yml`
+2. Build and start the containers:
    ```bash
    docker-compose up -d --build
    ```
 
-4. Access the application:
-   - Frontend: http://localhost
-   - Backend API: http://localhost/api
-   - Direct backend access: http://localhost:5000
+## Contributing
 
-### Stopping the Application
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-```bash
-docker-compose down
-```
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-To remove volumes (database data) as well:
-```bash
-docker-compose down -v
-```
+## License
 
-## Development
-
-For development purposes, you can still run the applications separately:
-
-### Client
-```bash
-cd client
-npm install
-npm start
-```
-
-### Server
-```bash
-cd server
-npm install
-npm start
-```
-
-## Notes
-
-- The frontend is built with React and served by Nginx
-- The backend is an Express.js API
-- MongoDB is used as the database
-- All services are containerized and orchestrated with Docker Compose
+This project is licensed under the MIT License - see the LICENSE file for details.

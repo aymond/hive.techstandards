@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .oauth-btn {
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 15px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .oauth-btn img {
+            margin-right: 10px;
+            height: 20px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>API Test Page</h1>
+    
+    <h2>Authentication</h2>
+    <button class="oauth-btn" onclick="window.location.href='/api/auth/google'">
+        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo">
+        Sign in with Google
+    </button>
+    
+    <h2>API Endpoints</h2>
+    <div>
+        <button id="testHealth">Test /api/health</button>
+        <button id="testTech">Test /api/technologies/public</button>
+        <button id="testAuth">Test /api/auth/me</button>
+    </div>
+    <div>
+        <h3>Results</h3>
+        <pre id="results">Click a button to test API connectivity...</pre>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const resultsEl = document.getElementById('results');
+            
+            // Log API base URL
+            if (window.env && window.env.REACT_APP_API_URL) {
+                resultsEl.innerHTML = `API Base URL: ${window.env.REACT_APP_API_URL}\n`;
+            } else {
+                resultsEl.innerHTML = `API Base URL: /api (default)\n`;
+            }
+
+            // Test health endpoint
+            document.getElementById('testHealth').addEventListener('click', async function() {
+                try {
+                    resultsEl.innerHTML = 'Testing /api/health endpoint...\n';
+                    const response = await fetch('/api/health', {
+                        credentials: 'include'
+                    });
+                    const data = await response.json();
+                    resultsEl.innerHTML += `<span class="success">✓ Health check successful:</span>\n${JSON.stringify(data, null, 2)}\n`;
+                } catch (error) {
+                    resultsEl.innerHTML += `<span class="error">✗ Error with health check:</span>\n${error.message}\n`;
+                }
+            });
+
+            // Test technologies endpoint
+            document.getElementById('testTech').addEventListener('click', async function() {
+                try {
+                    resultsEl.innerHTML = 'Testing /api/technologies/public endpoint...\n';
+                    const response = await fetch('/api/technologies/public', {
+                        credentials: 'include'
+                    });
+                    const data = await response.json();
+                    resultsEl.innerHTML += `<span class="success">✓ Technologies fetch successful:</span>\n${JSON.stringify(data.slice(0, 2), null, 2)}...\n(${data.length} technologies found)\n`;
+                } catch (error) {
+                    resultsEl.innerHTML += `<span class="error">✗ Error fetching technologies:</span>\n${error.message}\n`;
+                }
+            });
+
+            // Test auth endpoint
+            document.getElementById('testAuth').addEventListener('click', async function() {
+                try {
+                    resultsEl.innerHTML = 'Testing /api/auth/me endpoint...\n';
+                    const response = await fetch('/api/auth/me', {
+                        credentials: 'include'
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        resultsEl.innerHTML += `<span class="success">✓ Auth check successful:</span>\n${JSON.stringify(data, null, 2)}\n`;
+                    } else {
+                        resultsEl.innerHTML += `<span class="error">✗ Not authenticated (HTTP ${response.status}):</span>\n${await response.text()}\n`;
+                    }
+                } catch (error) {
+                    resultsEl.innerHTML += `<span class="error">✗ Error checking authentication:</span>\n${error.message}\n`;
+                }
+            });
+        });
+    </script>
+    <script src="/env.js"></script>
+</body>
+</html> 

@@ -5,9 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Technology Lifecycle Management Platform">
   <title>Technology Lifecycle Manager</title>
-  <link rel="icon" href="favicon.ico" />
+  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <!-- Load environment variables before React -->
+  <script src="%PUBLIC_URL%/env.js"></script>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <!-- Fallback content if JS is disabled or fails to load -->
+    <noscript>
+      <div style="max-width: 800px; margin: 40px auto; padding: 20px; text-align: center; font-family: sans-serif;">
+        <h1>JavaScript Required</h1>
+        <p>This application requires JavaScript to be enabled in your browser.</p>
+      </div>
+    </noscript>
+    <div id="loading-indicator" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
+      <h2>Loading application...</h2>
+      <p>Please wait while we set up the Technology Lifecycle Manager.</p>
+    </div>
+  </div>
 </body>
 </html> 

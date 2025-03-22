@@ -16,7 +16,11 @@ COPY . .
 ENV NODE_ENV=production
 
 # Expose the port the server runs on
-EXPOSE 5000
+EXPOSE 5081
+
+# Use tini as init system to handle signals properly
+RUN apk add --no-cache tini
+ENTRYPOINT ["/sbin/tini", "--"]
 
 # Start the server using the correct entry point
 CMD ["node", "src/index.js"] 

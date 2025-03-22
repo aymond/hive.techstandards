@@ -1,0 +1,45 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0.0, v20.15.10
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Extract release notes from CHANGELOG.md
+        id: extract_release_notes
+        run: |
+          CHANGELOG_CONTENT=$(awk -v version=$VERSION '
+            BEGIN { in_version = 0; notes = ""; }
+            /^## \['$VERSION'\]/ { in_version = 1; next; }
+            /^## \[/ { if (in_version) { exit; } }
+            { if (in_version) { notes = notes $0 "\n"; } }
+            END { print notes; }
+          ' CHANGELOG.md)
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo "$CHANGELOG_CONTENT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ env.VERSION }}
+          body: ${{ env.RELEASE_NOTES }}
+          draft: false
+          prerelease: false 
