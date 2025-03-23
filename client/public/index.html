@@ -7,7 +7,12 @@
   <title>Technology Lifecycle Manager</title>
   <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
-  <!-- Load environment variables before React -->
+  
+  <!-- Load React setup scripts before any React code -->
+  <script src="%PUBLIC_URL%/modulefix.js"></script>
+  <script src="%PUBLIC_URL%/browserify.js"></script>
+  
+  <!-- Load environment variables -->
   <script src="%PUBLIC_URL%/env.js"></script>
 </head>
 <body>

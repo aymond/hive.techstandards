@@ -9,20 +9,6 @@ const LandingPage = () => {
 
   return (
     <div className="landing-page">
-      <header className="landing-header">
-        <div className="container">
-          <nav className="landing-nav">
-            <div className="logo">
-              <h1>Technology Lifecycle Manager</h1>
-            </div>
-            <div className="nav-buttons">
-              <Link to="/login" className="btn btn-outline">Login</Link>
-              <Link to="/register" className="btn btn-primary">Register</Link>
-            </div>
-          </nav>
-        </div>
-      </header>
-      
       <section className="hero">
         <div className="container">
           <div className="hero-content">

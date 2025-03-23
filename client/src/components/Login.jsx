@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { loginUser, loginWithGoogle } from '../services/api';
 import './Auth.css';
 
@@ -11,6 +11,10 @@ const Login = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get the intended destination from location state, if any
+  const from = location.state?.from || '/dashboard';
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,6 +30,7 @@ const Login = ({ onLoginSuccess }) => {
     setIsLoading(true);
 
     try {
+      console.log('Logging in with:', credentials.email);
       const userData = await loginUser(credentials);
       console.log('Login successful:', userData);
       
@@ -34,8 +39,9 @@ const Login = ({ onLoginSuccess }) => {
         onLoginSuccess(userData);
       }
       
-      // Redirect to the main app
-      navigate('/dashboard');
+      // Redirect to the intended destination
+      console.log(`Redirecting to ${from} after successful login`);
+      navigate(from, { replace: true });
     } catch (err) {
       console.error('Login error:', err);
       setError(err.message || 'Failed to login. Please check your credentials.');
@@ -45,6 +51,7 @@ const Login = ({ onLoginSuccess }) => {
   };
 
   const handleGoogleLogin = () => {
+    console.log('Initiating Google OAuth login');
     // The loginWithGoogle function will handle the redirect to Google OAuth
     loginWithGoogle();
   };

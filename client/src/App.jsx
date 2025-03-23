@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -11,16 +11,87 @@ import {
   createTechnology, 
   updateTechnology, 
   deleteTechnology,
-  getCurrentUser
+  getCurrentUser,
+  logoutUser
 } from './services/api';
 import fallbackTechnologies from './data/technologies';
 import './App.css';
 
-function App() {
+// Eager load critical components
+import Navbar from './components/Navbar';
+import LoadingSpinner from './components/LoadingSpinner';
+import ErrorBoundary from './components/ErrorBoundary';
+import Dashboard from './components/Dashboard';
+
+// Lazy load non-critical components
+const TechnologyDetail = lazy(() => import('./components/TechnologyDetail'));
+const AddTechnology = lazy(() => import('./components/AddTechnology'));
+const ProfileSettings = lazy(() => import('./components/ProfileSettings'));
+
+// Fallback loading component for lazy-loaded routes
+const SuspenseFallback = () => (
+  <div className="suspense-loading">
+    <LoadingSpinner />
+    <p>Loading component...</p>
+  </div>
+);
+
+// Protected route component to handle authentication
+const ProtectedRoute = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check if the current route is a public route
+  const isPublicRoute = ['/', '/login', '/register'].includes(location.pathname);
+  
+  useEffect(() => {
+    // Skip auth check for public routes
+    if (isPublicRoute) {
+      setLoading(false);
+      return;
+    }
+    
+    const checkAuth = async () => {
+      try {
+        await getCurrentUser();
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.log('Auth check failed:', error.message || 'Unknown error');
+        setIsAuthenticated(false);
+        
+        // Only redirect if this is an actual protected route
+        if (!isPublicRoute) {
+          navigate('/login', { 
+            replace: true,
+            state: { from: location.pathname } // Save the intended destination
+          });
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkAuth();
+  }, [navigate, location.pathname, isPublicRoute]);
+  
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+  
+  // If it's a public route, or the user is authenticated, render the children
+  return (isPublicRoute || isAuthenticated) ? children : null;
+};
+
+// Create an App wrapper to use router hooks outside of Router context
+const AppContent = () => {
   const [user, setUser] = useState(null);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Check if user is logged in
   useEffect(() => {
@@ -39,250 +110,94 @@ function App() {
       }
     };
 
-    checkUser();
-  }, []);
+    // Only check authentication if we're not on a public route
+    const isPublicRoute = ['/', '/login', '/register'].includes(location.pathname);
+    if (isPublicRoute) {
+      setIsAuthChecked(true);
+      setIsLoading(false);
+    } else {
+      checkUser();
+    }
+  }, [location.pathname]);
 
   // Authentication handlers
   const handleLoginSuccess = (userData) => {
+    console.log('Login successful, user data:', userData);
     setUser(userData);
+    navigate('/dashboard');
   };
 
   const handleRegisterSuccess = () => {
     // Registration success, redirect to login happens in component
   };
 
-  const handleLogout = () => {
-    setUser(null);
+  const handleLogout = async () => {
+    try {
+      console.log('Logging out user');
+      await logoutUser();
+      setUser(null);
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   // Simple loading screen
-  if (isLoading) {
-    return <div className="loading">Loading application...</div>;
+  if (!isAuthChecked) {
+    return <div className="loading">Checking authentication...</div>;
   }
 
-  // Protected Route Component
-  const ProtectedRoute = ({ children }) => {
-    if (!isAuthChecked) {
-      return <div className="loading">Checking authentication...</div>;
-    }
-    if (!user) {
-      return <Navigate to="/login" />;
-    }
-    return children;
-  };
-
-  // Dashboard Component
-  const Dashboard = () => {
-    const [technologies, setTechnologies] = useState([]);
-    const [filteredTechnologies, setFilteredTechnologies] = useState([]);
-    const [filters, setFilters] = useState({
-      capability: '',
-      vendor: '',
-      lifecycleStatus: ''
-    });
-    const [isFormVisible, setIsFormVisible] = useState(false);
-    const [editingTechnology, setEditingTechnology] = useState(null);
-
-    useEffect(() => {
-      const loadTechnologies = async () => {
-        try {
-          setIsLoading(true);
-          const data = await fetchTechnologies();
-          
-          // If API returns empty array, use fallback data
-          if (data.length === 0) {
-            setTechnologies(fallbackTechnologies);
-          } else {
-            setTechnologies(data);
-          }
-          
-          setError(null);
-        } catch (err) {
-          console.error('Failed to load technologies:', err);
-          setError('Failed to load technologies. Using fallback data.');
-          setTechnologies(fallbackTechnologies);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      loadTechnologies();
-    }, []);
-
-    // Extract unique values for filter options
-    const capabilities = [...new Set(technologies.map(tech => tech.capability))];
-    const vendors = [...new Set(technologies.map(tech => tech.vendor))];
-    const statuses = [...new Set(technologies.map(tech => tech.lifecycleStatus))];
-
-    // Handle filter changes
-    const handleFilterChange = (filterName, value) => {
-      setFilters(prevFilters => ({
-        ...prevFilters,
-        [filterName]: value
-      }));
-    };
-
-    // Apply filters whenever the filters state or technologies change
-    useEffect(() => {
-      let results = technologies;
-      
-      if (filters.capability) {
-        results = results.filter(tech => tech.capability === filters.capability);
-      }
-      
-      if (filters.vendor) {
-        results = results.filter(tech => tech.vendor === filters.vendor);
-      }
-      
-      if (filters.lifecycleStatus) {
-        results = results.filter(tech => tech.lifecycleStatus === filters.lifecycleStatus);
-      }
-      
-      setFilteredTechnologies(results);
-    }, [filters, technologies]);
-
-    // CRUD operations
-    const handleAddNew = () => {
-      setEditingTechnology(null);
-      setIsFormVisible(true);
-    };
-
-    const handleEdit = (technology) => {
-      setEditingTechnology(technology);
-      setIsFormVisible(true);
-    };
-
-    const handleDelete = async (id) => {
-      if (window.confirm('Are you sure you want to delete this technology?')) {
-        try {
-          await deleteTechnology(id);
-          setTechnologies(prevTechnologies => 
-            prevTechnologies.filter(tech => tech.id !== id)
-          );
-        } catch (err) {
-          setError('Failed to delete technology. Please try again.');
-          console.error(err);
-        }
-      }
-    };
-
-    const handleFormSubmit = async (formData) => {
-      try {
-        if (editingTechnology) {
-          // Update existing technology
-          const updated = await updateTechnology(editingTechnology.id, formData);
-          setTechnologies(prevTechnologies => 
-            prevTechnologies.map(tech => 
-              tech.id === editingTechnology.id ? updated : tech
-            )
-          );
-        } else {
-          // Create new technology
-          const created = await createTechnology(formData);
-          setTechnologies(prevTechnologies => [...prevTechnologies, created]);
-        }
-        setIsFormVisible(false);
-        setEditingTechnology(null);
-      } catch (err) {
-        setError('Failed to save technology. Please try again.');
-        console.error(err);
-      }
-    };
-
-    const handleFormCancel = () => {
-      setIsFormVisible(false);
-      setEditingTechnology(null);
-    };
-
-    return (
-      <div className="app">
-        <header className="app-header">
-          <div className="container">
-            <div className="header-content">
-              <h1>Technology Lifecycle Manager</h1>
-              {user && (
-                <div className="user-info">
-                  <span>Welcome, {user.name || user.email}</span>
-                  <button onClick={handleLogout} className="btn btn-outline">Logout</button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-        
-        <main className="container">
-          {isLoading ? (
-            <div className="loading">Loading technologies...</div>
-          ) : error ? (
-            <div className="error-message">
-              <p>{error}</p>
-            </div>
-          ) : (
-            <>
-              {isFormVisible ? (
-                <div className="form-container">
-                  <h3>{editingTechnology ? 'Edit Technology' : 'Add New Technology'}</h3>
-                  <TechnologyForm 
-                    technology={editingTechnology}
-                    onSubmit={handleFormSubmit}
-                    onCancel={handleFormCancel}
-                  />
-                </div>
-              ) : (
-                <>
-                  <div className="app-actions">
-                    <button 
-                      onClick={handleAddNew} 
-                      className="btn btn-primary"
-                    >
-                      Add New Technology
-                    </button>
-                  </div>
-
-                  <TechnologyFilter 
-                    filters={filters}
-                    onFilterChange={handleFilterChange}
-                    capabilities={capabilities}
-                    vendors={vendors}
-                    statuses={statuses}
-                  />
-                  
-                  <div className="results-info">
-                    <p>Showing {filteredTechnologies.length} of {technologies.length} technologies</p>
-                  </div>
-                  
-                  <TechnologyList 
-                    technologies={filteredTechnologies} 
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                  />
-                </>
-              )}
-            </>
-          )}
-        </main>
-        
-        <footer className="app-footer">
-          <div className="container">
-            <p>&copy; {new Date().getFullYear()} Technology Lifecycle Manager</p>
-          </div>
-        </footer>
-      </div>
-    );
-  };
-
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
-      <Route path="/register" element={<Register onRegisterSuccess={handleRegisterSuccess} />} />
-      <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      } />
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+    <div className="app">
+      <Navbar />
+      <main className="main-content">
+        <Suspense fallback={<SuspenseFallback />}>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
+            <Route path="/register" element={<Register onRegisterSuccess={handleRegisterSuccess} />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/technologies/:id" 
+              element={
+                <ProtectedRoute>
+                  <Suspense fallback={<SuspenseFallback />}>
+                    <TechnologyDetail />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Suspense fallback={<SuspenseFallback />}>
+                    <ProfileSettings />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </main>
+    </div>
+  );
+};
+
+// Main App component - Note: Router is removed as it's already in index.js
+function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
   );
 }
 

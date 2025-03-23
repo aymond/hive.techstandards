@@ -50,7 +50,7 @@ const TechnologyManagement = () => {
     if (window.confirm('Are you sure you want to delete this technology?')) {
       try {
         await deleteTechnology(id);
-        setTechnologies(technologies.filter(tech => tech.id !== id));
+        setTechnologies(technologies.filter(tech => tech._id !== id));
       } catch (err) {
         setError('Failed to delete technology. Please try again.');
         console.error(err);
@@ -62,9 +62,9 @@ const TechnologyManagement = () => {
     try {
       if (editingTechnology) {
         // Update existing technology
-        const updated = await updateTechnology(editingTechnology.id, formData);
+        const updated = await updateTechnology(editingTechnology._id, formData);
         setTechnologies(technologies.map(tech => 
-          tech.id === editingTechnology.id ? updated : tech
+          tech._id === editingTechnology._id ? updated : tech
         ));
       } else {
         // Create new technology
@@ -178,7 +178,7 @@ const TechnologyManagement = () => {
             </thead>
             <tbody>
               {filteredTechnologies.map(tech => (
-                <tr key={tech.id} className={`status-${tech.lifecycleStatus.toLowerCase()}`}>
+                <tr key={tech._id} className={`status-${tech.lifecycleStatus.toLowerCase()}`}>
                   <td>{tech.name}</td>
                   <td>{tech.vendor}</td>
                   <td>{tech.capability}</td>
@@ -194,7 +194,7 @@ const TechnologyManagement = () => {
                       Edit
                     </button>
                     <button 
-                      onClick={() => handleDelete(tech.id)} 
+                      onClick={() => handleDelete(tech._id)} 
                       className="btn btn-delete"
                       title="Delete this technology"
                     >

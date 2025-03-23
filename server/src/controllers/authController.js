@@ -35,6 +35,28 @@ const getDefaultTenantId = async () => {
   return defaultTenant._id;
 };
 
+// Set token as cookie with enhanced security options
+const setSecureCookie = (res, token) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.cookie('token', token, {
+    httpOnly: true, // Prevents client-side JS from reading the cookie
+    secure: isProduction, // Requires HTTPS in production
+    sameSite: isProduction ? 'strict' : 'lax', // Protects against CSRF
+    domain: process.env.COOKIE_DOMAIN || undefined,
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  });
+
+  // Set a CSRF token that client can read (not httpOnly)
+  const csrfToken = require('crypto').randomBytes(32).toString('hex');
+  res.cookie('csrf_token', csrfToken, {
+    httpOnly: false, // Client JS needs to read this
+    secure: isProduction,
+    sameSite: isProduction ? 'strict' : 'lax',
+    domain: process.env.COOKIE_DOMAIN || undefined,
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  });
+};
+
 // Handle Google OAuth callback
 exports.googleCallback = async (req, res) => {
   try {
@@ -51,14 +73,8 @@ exports.googleCallback = async (req, res) => {
     // Generate JWT token
     const token = generateToken(user);
     
-    // Set token as cookie
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none', // Allow cross-site cookies
-      domain: process.env.COOKIE_DOMAIN || undefined,
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    // Set enhanced secure cookies
+    setSecureCookie(res, token);
     
     console.log('Token cookie set, redirecting to frontend');
     
@@ -79,6 +95,14 @@ exports.register = async (req, res) => {
   try {
     const { email, password, name, tenantKey } = req.body;
     
+    // Enhanced input validation
+    if (!email || !password || password.length < 8) {
+      return res.status(400).json({
+        message: 'Invalid input',
+        details: 'Email is required and password must be at least 8 characters'
+      });
+    }
+    
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -97,27 +121,25 @@ exports.register = async (req, res) => {
     } else {
       tenantId = await getDefaultTenantId();
     }
+
+    // Check if this is the first user in the system
+    const userCount = await User.countDocuments();
+    const role = userCount === 0 ? 'admin' : 'user';
     
     // Create new user
     const user = await User.create({
       email,
       password,
       name,
-      role: 'user',
+      role,
       tenantId
     });
     
     // Generate JWT token
     const token = generateToken(user);
     
-    // Set token as cookie
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none', // Allow cross-site cookies
-      domain: process.env.COOKIE_DOMAIN || undefined,
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    // Set enhanced secure cookies
+    setSecureCookie(res, token);
     
     // Return user info (excluding password)
     const userResponse = {
@@ -130,7 +152,8 @@ exports.register = async (req, res) => {
     res.status(201).json({ user: userResponse, token });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ message: 'Registration failed' });
+    // Sanitized error response
+    res.status(500).json({ message: 'Registration failed. Please try again later.' });
   }
 };
 
@@ -138,6 +161,11 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    
+    // Enhanced input validation
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
     
     // Find user by email
     const user = await User.findOne({ email });
@@ -162,14 +190,8 @@ exports.login = async (req, res) => {
     // Generate JWT token
     const token = generateToken(user);
     
-    // Set token as cookie
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none', // Allow cross-site cookies
-      domain: process.env.COOKIE_DOMAIN || undefined,
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    // Set enhanced secure cookies
+    setSecureCookie(res, token);
     
     // Return user info (excluding password)
     const userResponse = {
@@ -183,13 +205,16 @@ exports.login = async (req, res) => {
     res.json({ user: userResponse, token });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Login failed' });
+    // Sanitized error response
+    res.status(500).json({ message: 'Login failed. Please try again later.' });
   }
 };
 
 // Logout user
 exports.logout = (req, res) => {
+  // Clear all authentication cookies
   res.clearCookie('token');
+  res.clearCookie('csrf_token');
   res.json({ message: 'Logged out successfully' });
 };
 

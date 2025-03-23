@@ -7,6 +7,8 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 // Load environment variables
 dotenv.config();
@@ -18,9 +20,27 @@ const tenantRoutes = require('./routes/tenantRoutes');
 
 // Import middleware
 const { optionalAuthenticate } = require('./middleware/auth');
+const { csrfProtection } = require('./middleware/csrf');
 
 const app = express();
 const PORT = process.env.PORT || 5081;
+
+// Security headers with Helmet
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+}));
+
+// Rate limiting to prevent brute force attacks
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting to auth routes
+app.use('/api/auth/', apiLimiter);
 
 // CORS Configuration
 // Explicitly define allowed origins
@@ -50,22 +70,30 @@ app.use(cors({
       callback(null, true);
     } else {
       console.log('Origin not allowed by CORS:', origin);
-      // Don't block the request, just log it
+      // In production, actually reject unauthorized origins
+      if (process.env.NODE_ENV === 'production') {
+        return callback(new Error('Origin not allowed by CORS policy'), false);
+      }
+      // In development, allow the request but log it
+      console.warn('CORS warning: Allowing unauthorized origin in development mode');
       callback(null, true);
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token']
 }));
 
 // Other middleware
-app.use(express.json());
+app.use(express.json({ limit: '1mb' })); // Limit request body size
 app.use(cookieParser());
 
 // MongoDB connection
 let db;
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/tech-standards')
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/tech-standards', {
+  // Add security-related MongoDB connection options
+  autoIndex: false, // Don't build indexes in production
+})
   .then((connection) => {
     console.log('MongoDB connected');
     db = connection;
@@ -85,11 +113,11 @@ app.use(session({
     ttl: 14 * 24 * 60 * 60 // 14 days
   }),
   cookie: {
-    secure: false, // Set to false for HTTP connections
+    secure: process.env.NODE_ENV === 'production', // Only use secure cookies in production
     httpOnly: true,
     maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
-    sameSite: 'none', // Allow cross-domain cookies
-    domain: process.env.COOKIE_DOMAIN || 'localhost' // Domain from env or default
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // Stricter in production
+    domain: process.env.COOKIE_DOMAIN || undefined // Domain from env or default
   }
 }));
 
@@ -109,10 +137,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// API Routes
+// API Routes with CSRF protection for mutating operations
 app.use('/api/auth', authRoutes);
-app.use('/api/technologies', technologyRoutes);
-app.use('/api/tenants', tenantRoutes);
+app.use('/api/technologies', csrfProtection, technologyRoutes);
+app.use('/api/tenants', csrfProtection, tenantRoutes);
+
+// Non-API auth routes for OAuth
+app.use('/auth', authRoutes);
 
 // Health check route with optional authentication
 app.get('/api/health', optionalAuthenticate, (req, res) => {

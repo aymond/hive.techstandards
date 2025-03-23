@@ -1,10 +1,16 @@
+// Initialize React aliasing first
+import './webpack-alias';
+// Import invariant check to help with router debugging
+import './invariant-check';
+
+// Import React normally - webpack alias will ensure consistent versions
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 
-// Add error handling to catch rendering issues
+// Simple error handler
 window.addEventListener('error', function(e) {
   console.error('Global error caught:', e.error || e.message);
   const rootEl = document.getElementById('root');
@@ -22,18 +28,19 @@ window.addEventListener('error', function(e) {
   }
 });
 
-// Log environment variables to help with debugging
-console.log('Environment:', {
-  apiUrl: window.env.REACT_APP_API_URL,
-  absoluteApiUrl: window.env.REACT_APP_ABSOLUTE_API_URL,
-  clientUrl: window.env.REACT_APP_CLIENT_URL,
-  version: window.env.REACT_APP_VERSION
+// Log React Router specific information to help with debugging
+console.log('React Router Context Setup:', {
+  usingBrowserRouter: true,
+  routerLocation: window.location.pathname,
+  routerBasename: '/'
 });
 
-// Use the traditional render method which is more compatible
+// Render the app using standard ReactDOM
 ReactDOM.render(
-  <BrowserRouter>
-    <App />
-  </BrowserRouter>,
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>,
   document.getElementById('root')
 ); 
