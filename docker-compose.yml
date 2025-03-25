@@ -21,6 +21,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    restart: unless-stopped
+    stop_grace_period: 5s
     
   # Node.js server
   server:
@@ -61,9 +63,9 @@ services:
     image: mongo:latest
     ports:
       - "27017:27017"
-    # Using tmpfs for data to avoid volume binding issues
-    tmpfs:
-      - /data/db
+    # Using a named volume instead of tmpfs for data persistence
+    volumes:
+      - mongodb_data:/data/db
     networks:
       - app-network
     restart: unless-stopped
@@ -79,4 +81,7 @@ networks:
   app-network:
     driver: bridge
 
-# Removed volumes section 
+# Added volumes section to define the named volume
+volumes:
+  mongodb_data:
+    driver: local 

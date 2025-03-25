@@ -1,5 +1,30 @@
 const mongoose = require('mongoose');
 
+// Define the version schema as a subdocument
+const VersionSchema = new mongoose.Schema({
+  versionNumber: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  releaseDate: {
+    type: Date,
+    required: true
+  },
+  endOfSupportDate: {
+    type: Date
+  },
+  lifecycleStatus: {
+    type: String,
+    required: true,
+    enum: ['Active', 'Deprecated', 'Retired', 'Planned'],
+    default: 'Active'
+  },
+  notes: {
+    type: String
+  }
+});
+
 const TechnologySchema = new mongoose.Schema({
   name: {
     type: String,
@@ -20,11 +45,18 @@ const TechnologySchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  // The overall technology lifecycle status
   lifecycleStatus: {
     type: String,
     required: true,
     enum: ['Active', 'Deprecated', 'Retired', 'Planned'],
     default: 'Active'
+  },
+  // Array of version objects, each with its own lifecycle
+  versions: [VersionSchema],
+  // Current/primary version
+  currentVersion: {
+    type: String
   },
   startDate: {
     type: Date,
@@ -53,6 +85,37 @@ const TechnologySchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  // Additional fields from sample data
+  type: {
+    type: String
+  },
+  businessImpact: {
+    type: String
+  },
+  useCase: {
+    type: String
+  },
+  limitations: {
+    type: String
+  },
+  alternatives: {
+    type: String
+  },
+  documentationUrl: {
+    type: String
+  },
+  securityConsiderations: {
+    type: String
+  },
+  costConsiderations: {
+    type: String
+  },
+  complianceRequirements: {
+    type: String
+  },
+  licenseType: {
+    type: String
   }
 });
 

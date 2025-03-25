@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Tenant = require('../models/Tenant');
+const crypto = require('crypto');
 
 // JWT configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -18,6 +19,11 @@ const generateToken = (user) => {
     JWT_SECRET, 
     { expiresIn: JWT_EXPIRES_IN }
   );
+};
+
+// Generate a unique tenant key
+const generateTenantKey = () => {
+  return crypto.randomBytes(6).toString('hex');
 };
 
 // Get default tenant ID
@@ -93,7 +99,7 @@ exports.googleCallback = async (req, res) => {
 // Register new user
 exports.register = async (req, res) => {
   try {
-    const { email, password, name, tenantKey } = req.body;
+    const { email, password, name, tenantKey, organizationName } = req.body;
     
     // Enhanced input validation
     if (!email || !password || password.length < 8) {
@@ -109,22 +115,38 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
     
-    // Determine tenant ID - if tenant key provided, use that, otherwise use default
+    // Check if this is the first user in the system
+    const userCount = await User.countDocuments();
+    const isFirstUser = userCount === 0;
+    const role = isFirstUser ? 'admin' : 'user';
+    
+    // Determine tenant ID
     let tenantId;
+    let tenant;
     
     if (tenantKey) {
-      const tenant = await Tenant.findOne({ tenantKey });
+      // If tenant key provided, use that tenant
+      tenant = await Tenant.findOne({ tenantKey });
       if (!tenant) {
         return res.status(404).json({ message: 'Invalid tenant key' });
       }
       tenantId = tenant._id;
+    } else if (isFirstUser || organizationName) {
+      // If this is the first user or they provided an org name, create a new tenant for them
+      const newTenantKey = generateTenantKey();
+      const tenantName = organizationName || `${name}'s Organization`;
+      
+      tenant = await Tenant.create({
+        name: tenantName,
+        tenantKey: newTenantKey,
+        isActive: true
+      });
+      
+      tenantId = tenant._id;
     } else {
+      // Otherwise use default tenant
       tenantId = await getDefaultTenantId();
     }
-
-    // Check if this is the first user in the system
-    const userCount = await User.countDocuments();
-    const role = userCount === 0 ? 'admin' : 'user';
     
     // Create new user
     const user = await User.create({
@@ -138,10 +160,20 @@ exports.register = async (req, res) => {
     // Generate JWT token
     const token = generateToken(user);
     
-    // Set enhanced secure cookies
-    setSecureCookie(res, token);
+    // Set secure cookies (if method exists)
+    if (typeof setSecureCookie === 'function') {
+      setSecureCookie(res, token);
+    } else {
+      // Fallback cookie setting
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+    }
     
-    // Return user info (excluding password)
+    // Return user info (excluding password) and tenant info
     const userResponse = {
       id: user._id,
       name: user.name,
@@ -149,7 +181,18 @@ exports.register = async (req, res) => {
       role: user.role
     };
     
-    res.status(201).json({ user: userResponse, token });
+    const tenantResponse = tenant ? {
+      id: tenant._id,
+      name: tenant.name,
+      tenantKey: tenant.tenantKey
+    } : null;
+    
+    res.status(201).json({ 
+      user: userResponse, 
+      token,
+      tenant: tenantResponse,
+      isFirstUser
+    });
   } catch (error) {
     console.error('Registration error:', error);
     // Sanitized error response

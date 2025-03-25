@@ -9,10 +9,12 @@ const Register = ({ onRegisterSuccess }) => {
     email: '',
     password: '',
     confirmPassword: '',
-    tenantKey: ''
+    tenantKey: '',
+    organizationName: ''
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showOrgField, setShowOrgField] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -20,6 +22,23 @@ const Register = ({ onRegisterSuccess }) => {
     setUserData(prev => ({
       ...prev,
       [name]: value
+    }));
+
+    // Clear tenant key if organization name is entered, and vice versa
+    if (name === 'organizationName' && value) {
+      setUserData(prev => ({ ...prev, tenantKey: '' }));
+    } else if (name === 'tenantKey' && value) {
+      setUserData(prev => ({ ...prev, organizationName: '' }));
+    }
+  };
+
+  const toggleOrgField = () => {
+    setShowOrgField(!showOrgField);
+    // Clear both fields when switching
+    setUserData(prev => ({
+      ...prev,
+      tenantKey: '',
+      organizationName: ''
     }));
   };
 
@@ -52,6 +71,17 @@ const Register = ({ onRegisterSuccess }) => {
         onRegisterSuccess(response);
       }
       
+      // Show success message with organization info if applicable
+      let successMessage = `Registration successful! Welcome, ${userData.name}!`;
+      if (response.tenant) {
+        successMessage += ` You've been added to the "${response.tenant.name}" organization.`;
+        if (response.isFirstUser) {
+          successMessage += ' You are the admin of this organization.';
+        }
+      }
+      
+      alert(successMessage);
+      
       // Redirect to the login page or dashboard
       navigate('/login');
     } catch (err) {
@@ -63,102 +93,119 @@ const Register = ({ onRegisterSuccess }) => {
   };
 
   return (
-    <div className="auth-form-container">
-      <h2>Create a New Account</h2>
-      
-      {error && <div className="auth-error">{error}</div>}
-      
-      <form onSubmit={handleSubmit} className="auth-form">
-        <div className="form-group">
-          <label htmlFor="name">Full Name</label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={userData.name}
-            onChange={handleChange}
-            required
-            disabled={isLoading}
-            placeholder="Enter your full name"
-          />
-        </div>
+    <div className="auth-container">
+      <div className="auth-card">
+        <h2>Create an Account</h2>
         
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={userData.email}
-            onChange={handleChange}
-            required
-            disabled={isLoading}
-            placeholder="Enter your email"
-          />
-        </div>
+        {error && <div className="error-message">{error}</div>}
         
-        <div className="form-group">
-          <label htmlFor="password">Password</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={userData.password}
-            onChange={handleChange}
-            required
-            disabled={isLoading}
-            placeholder="Create a password"
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="confirmPassword">Confirm Password</label>
-          <input
-            type="password"
-            id="confirmPassword"
-            name="confirmPassword"
-            value={userData.confirmPassword}
-            onChange={handleChange}
-            required
-            disabled={isLoading}
-            placeholder="Confirm your password"
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="tenantKey">Tenant Key (Optional)</label>
-          <input
-            type="text"
-            id="tenantKey"
-            name="tenantKey"
-            value={userData.tenantKey}
-            onChange={handleChange}
-            disabled={isLoading}
-            placeholder="Enter your organization's tenant key if you have one"
-          />
-          <small>Leave blank to create a new tenant</small>
-        </div>
-        
-        <button 
-          type="submit"
-          className="auth-button"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Registering...' : 'Register'}
-        </button>
-      </form>
-      
-      <div className="auth-links">
-        <p>
-          Already have an account? <Link to="/login">Login</Link>
-        </p>
-        <p>
-          <Link to="/auth/google">
-            <button className="google-auth-button">
-              <i className="fab fa-google"></i> Register with Google
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-group">
+            <label htmlFor="name">Full Name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={userData.name}
+              onChange={handleChange}
+              required
+              placeholder="Enter your full name"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={userData.email}
+              onChange={handleChange}
+              required
+              placeholder="Enter your email"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={userData.password}
+              onChange={handleChange}
+              required
+              placeholder="Create a password (min. 6 characters)"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirm Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={userData.confirmPassword}
+              onChange={handleChange}
+              required
+              placeholder="Confirm your password"
+            />
+          </div>
+          
+          <div className="tenant-options">
+            <button 
+              type="button" 
+              className="toggle-button"
+              onClick={toggleOrgField}
+            >
+              {showOrgField ? "I have an organization code" : "I want to create a new organization"}
             </button>
-          </Link>
-        </p>
+          </div>
+          
+          {showOrgField ? (
+            <div className="form-group">
+              <label htmlFor="organizationName">Organization Name</label>
+              <input
+                type="text"
+                id="organizationName"
+                name="organizationName"
+                value={userData.organizationName}
+                onChange={handleChange}
+                placeholder="Enter your organization name"
+              />
+              <small className="helper-text">
+                This will create a new organization with you as a member.
+              </small>
+            </div>
+          ) : (
+            <div className="form-group">
+              <label htmlFor="tenantKey">Organization Code (optional)</label>
+              <input
+                type="text"
+                id="tenantKey"
+                name="tenantKey"
+                value={userData.tenantKey}
+                onChange={handleChange}
+                placeholder="Enter organization code if you have one"
+              />
+              <small className="helper-text">
+                Leave empty to join the default organization or enter a code to join a specific organization.
+              </small>
+            </div>
+          )}
+          
+          <button 
+            type="submit" 
+            className="auth-button"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Registering...' : 'Register'}
+          </button>
+        </form>
+        
+        <div className="auth-footer">
+          Already have an account? <Link to="/login">Login</Link>
+        </div>
       </div>
     </div>
   );

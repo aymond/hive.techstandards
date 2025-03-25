@@ -44,7 +44,7 @@ router.get('/google/callback',
   authController.googleCallback
 );
 
-// Register a new user
+// Register new user
 router.post('/register', authController.register);
 
 // Login user

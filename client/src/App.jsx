@@ -27,6 +27,8 @@ import Dashboard from './components/Dashboard';
 const TechnologyDetail = lazy(() => import('./components/TechnologyDetail'));
 const AddTechnology = lazy(() => import('./components/AddTechnology'));
 const ProfileSettings = lazy(() => import('./components/ProfileSettings'));
+const OrganizationPanel = lazy(() => import('./components/OrganizationPanel'));
+const JoinOrganization = lazy(() => import('./components/JoinOrganization'));
 
 // Fallback loading component for lazy-loaded routes
 const SuspenseFallback = () => (
@@ -180,6 +182,26 @@ const AppContent = () => {
                 <ProtectedRoute>
                   <Suspense fallback={<SuspenseFallback />}>
                     <ProfileSettings />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/organization" 
+              element={
+                <ProtectedRoute>
+                  <Suspense fallback={<SuspenseFallback />}>
+                    <OrganizationPanel />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/join-organization" 
+              element={
+                <ProtectedRoute>
+                  <Suspense fallback={<SuspenseFallback />}>
+                    <JoinOrganization />
                   </Suspense>
                 </ProtectedRoute>
               } 

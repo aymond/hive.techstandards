@@ -70,8 +70,8 @@ const Navbar = () => {
   
   // Check if user has required role
   const hasRole = useCallback((requiredRole) => {
-    if (!user || !user.roles) return false;
-    return user.roles.includes(requiredRole);
+    if (!user || !user.role) return false;
+    return user.role === requiredRole;
   }, [user]);
   
   // Memoize whether user is admin
@@ -79,12 +79,23 @@ const Navbar = () => {
     return hasRole('admin');
   }, [hasRole]);
   
+  // Memoize whether user has a tenant organization
+  const hasTenant = useMemo(() => {
+    return user && user.tenantId;
+  }, [user]);
+  
   // Conditional links based on authentication and roles
   const authLinks = useMemo(() => (
     <>
       <NavbarLink to="/dashboard" label="Dashboard" isActive={isActive('/dashboard')} onClick={closeMenu} />
       {isAdmin && (
-        <NavbarLink to="/add-technology" label="Add Technology" isActive={isActive('/add-technology')} onClick={closeMenu} />
+        <>
+          <NavbarLink to="/add-technology" label="Add Technology" isActive={isActive('/add-technology')} onClick={closeMenu} />
+          <NavbarLink to="/organization" label="Organization" isActive={isActive('/organization')} onClick={closeMenu} />
+        </>
+      )}
+      {!hasTenant && (
+        <NavbarLink to="/join-organization" label="Join Organization" isActive={isActive('/join-organization')} onClick={closeMenu} />
       )}
       <NavbarLink to="/profile" label="Profile" isActive={isActive('/profile')} onClick={closeMenu} />
       <li className="nav-item">
@@ -93,7 +104,7 @@ const Navbar = () => {
         </button>
       </li>
     </>
-  ), [isActive, closeMenu, isAdmin, handleLogout]);
+  ), [isActive, closeMenu, isAdmin, handleLogout, hasTenant]);
   
   const guestLinks = useMemo(() => (
     <>

@@ -27,18 +27,36 @@ const importTechnologies = async () => {
     
     console.log(`Found ${technologies.length} technologies to import`);
     
-    // Get cookies for authentication from the browser and add them here
-    const cookies = 'YOUR_COOKIES_HERE'; // Replace with actual cookies from your browser
+    // Get an authentication token
+    // You need to be logged in as an admin user before running this script
+    console.log('Getting authentication info...');
     
-    // Setup axios instance with cookies
+    // Setup axios instance
     const api = axios.create({
       baseURL: API_URL,
       headers: {
-        'Content-Type': 'application/json',
-        'Cookie': cookies
+        'Content-Type': 'application/json'
       },
       withCredentials: true
     });
+    
+    // Check if we're authenticated and have admin rights
+    try {
+      const authCheck = await api.get('/health');
+      console.log('Auth status:', authCheck.data.auth);
+      
+      if (authCheck.data.auth !== 'authenticated' || !authCheck.data.user || authCheck.data.user.role !== 'admin') {
+        console.log('You need to be logged in as an admin user.');
+        console.log('Please login in your browser at http://localhost:5080 before running this script.');
+        process.exit(1);
+      }
+      
+      console.log(`Logged in as: ${authCheck.data.user.name} (${authCheck.data.user.role})`);
+    } catch (err) {
+      console.error('Authentication check failed:', err.message);
+      console.log('Please make sure the server is running and you are logged in as admin.');
+      process.exit(1);
+    }
     
     // Import each technology
     let successCount = 0;
@@ -46,7 +64,32 @@ const importTechnologies = async () => {
     
     for (const tech of technologies) {
       try {
-        // Transform the data to match the server model if needed
+        // Create version objects from the technology data
+        // For the import, we'll create the current version plus any additional versions
+        const mainVersion = {
+          versionNumber: tech.version,
+          releaseDate: new Date(), // Using current date as release date
+          lifecycleStatus: mapStatus(tech.status),
+          notes: `Initial version of ${tech.name}`
+        };
+
+        // Build an array of versions
+        const versions = [mainVersion];
+        
+        // Add additional versions if they exist in the import data
+        if (tech.additionalVersions && Array.isArray(tech.additionalVersions)) {
+          for (const additionalVersion of tech.additionalVersions) {
+            versions.push({
+              versionNumber: additionalVersion.versionNumber,
+              releaseDate: new Date(additionalVersion.releaseDate || Date.now()),
+              endOfSupportDate: additionalVersion.endOfSupportDate ? new Date(additionalVersion.endOfSupportDate) : undefined,
+              lifecycleStatus: mapStatus(additionalVersion.status || 'Active'),
+              notes: additionalVersion.notes || `Version ${additionalVersion.versionNumber} of ${tech.name}`
+            });
+          }
+        }
+
+        // Transform the data to match the server model
         const technologyData = {
           name: tech.name,
           description: tech.description,
@@ -54,10 +97,14 @@ const importTechnologies = async () => {
           capability: tech.category, // Map category to capability
           lifecycleStatus: mapStatus(tech.status),
           startDate: new Date(), // Current date as start date
-          // Additional fields from the sample data that don't directly map to the model
-          // These will be stored but not used by the current model
+          endDate: tech.endDate ? new Date(tech.endDate) : undefined,
+          
+          // Version information
+          versions: versions,
+          currentVersion: tech.version, // The main version is set as current
+          
+          // Additional fields from the sample data
           type: tech.type,
-          version: tech.version,
           businessImpact: tech.businessImpact,
           useCase: tech.useCase,
           limitations: tech.limitations,
@@ -71,7 +118,7 @@ const importTechnologies = async () => {
         
         // Make the API call
         const response = await api.post(TECHNOLOGIES_ENDPOINT, technologyData);
-        console.log(`✅ Imported: ${tech.name}`);
+        console.log(`✅ Imported: ${tech.name} v${tech.version} (ID: ${response.data._id})`);
         successCount++;
       } catch (error) {
         console.error(`❌ Error importing ${tech.name}:`, error.response?.data?.message || error.message);
@@ -111,47 +158,98 @@ importTechnologies();
  * 
  * 1. Log in to the application as an admin
  * 2. Open your browser's developer tools (F12)
- * 3. In the console, paste the following code (after replacing the file content):
+ * 3. In the console, paste the following code:
  * 
- * const technologies = [
- *   // Paste the content of tech-standards-import.json here
- * ];
- * 
- * async function importTech() {
+ * async function importTechnologies() {
+ *   // Fetch the technology data
+ *   const response = await fetch('/tech-standards-import.json');
+ *   const technologies = await response.json();
+ *   
+ *   let successCount = 0;
+ *   let errorCount = 0;
+ *   
  *   for (const tech of technologies) {
  *     try {
+ *       // Create main version
+ *       const mainVersion = {
+ *         versionNumber: tech.version,
+ *         releaseDate: new Date(),
+ *         lifecycleStatus: mapStatus(tech.status),
+ *         notes: `Initial version of ${tech.name}`
+ *       };
+ *       
+ *       // Build array of versions
+ *       const versions = [mainVersion];
+ *       
+ *       // Add additional versions if they exist
+ *       if (tech.additionalVersions && Array.isArray(tech.additionalVersions)) {
+ *         for (const additionalVersion of tech.additionalVersions) {
+ *           versions.push({
+ *             versionNumber: additionalVersion.versionNumber,
+ *             releaseDate: new Date(additionalVersion.releaseDate || Date.now()),
+ *             endOfSupportDate: additionalVersion.endOfSupportDate ? new Date(additionalVersion.endOfSupportDate) : undefined,
+ *             lifecycleStatus: mapStatus(additionalVersion.status || 'Active'),
+ *             notes: additionalVersion.notes || `Version ${additionalVersion.versionNumber} of ${tech.name}`
+ *           });
+ *         }
+ *       }
+ *       
  *       const technologyData = {
  *         name: tech.name,
  *         description: tech.description,
  *         vendor: tech.vendor,
  *         capability: tech.category,
- *         lifecycleStatus: tech.status === 'Approved' ? 'Active' : 
- *                          tech.status === 'Under Review' ? 'Planned' : 
- *                          tech.status,
+ *         lifecycleStatus: mapStatus(tech.status),
  *         startDate: new Date(),
- *         // Additional fields
+ *         endDate: tech.endDate ? new Date(tech.endDate) : undefined,
+ *         versions: versions,
+ *         currentVersion: tech.version,
  *         type: tech.type,
- *         version: tech.version
+ *         businessImpact: tech.businessImpact,
+ *         useCase: tech.useCase,
+ *         limitations: tech.limitations,
+ *         alternatives: tech.alternatives,
+ *         documentationUrl: tech.documentationUrl,
+ *         securityConsiderations: tech.securityConsiderations,
+ *         costConsiderations: tech.costConsiderations
  *       };
  *       
- *       const response = await fetch('/api/technologies', {
+ *       const createResponse = await fetch('/api/technologies', {
  *         method: 'POST',
  *         headers: { 'Content-Type': 'application/json' },
- *         body: JSON.stringify(technologyData),
- *         credentials: 'include'
+ *         body: JSON.stringify(technologyData)
  *       });
  *       
- *       if (response.ok) {
- *         console.log(`Imported: ${tech.name}`);
+ *       if (createResponse.ok) {
+ *         console.log(`✅ Imported: ${tech.name} v${tech.version}`);
+ *         successCount++;
  *       } else {
- *         const error = await response.json();
- *         console.error(`Error importing ${tech.name}:`, error.message);
+ *         const error = await createResponse.json();
+ *         console.error(`❌ Error importing ${tech.name}:`, error.message);
+ *         errorCount++;
  *       }
  *     } catch (error) {
- *       console.error(`Error importing ${tech.name}:`, error);
+ *       console.error(`❌ Error importing ${tech.name}:`, error);
+ *       errorCount++;
  *     }
  *   }
+ *   
+ *   console.log('\nImport Summary:');
+ *   console.log(`Total: ${technologies.length}`);
+ *   console.log(`Success: ${successCount}`);
+ *   console.log(`Failed: ${errorCount}`);
  * }
  * 
- * importTech();
+ * function mapStatus(status) {
+ *   const statusMap = {
+ *     'Approved': 'Active',
+ *     'Under Review': 'Planned',
+ *     'Deprecated': 'Deprecated',
+ *     'Retired': 'Retired'
+ *   };
+ *   
+ *   return statusMap[status] || 'Active';
+ * }
+ * 
+ * importTechnologies();
  */ 

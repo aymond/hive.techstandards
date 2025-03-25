@@ -6,6 +6,7 @@ import {
   deleteTechnology 
 } from '../services/api';
 import TechnologyForm from './TechnologyForm';
+import TechnologyList from './TechnologyList';
 import './TechnologyManagement.css';
 
 const TechnologyManagement = () => {
@@ -16,6 +17,7 @@ const TechnologyManagement = () => {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [viewMode, setViewMode] = useState('card'); // 'card' or 'table'
 
   // Load technologies on component mount
   useEffect(() => {
@@ -92,6 +94,10 @@ const TechnologyManagement = () => {
     setFilterStatus(e.target.value);
   };
 
+  const toggleViewMode = () => {
+    setViewMode(viewMode === 'card' ? 'table' : 'card');
+  };
+
   // Filter technologies based on search term and status filter
   const filteredTechnologies = technologies.filter(tech => {
     const matchesSearch = 
@@ -138,6 +144,14 @@ const TechnologyManagement = () => {
             <option value="Retired">Retired</option>
             <option value="Proposed">Proposed</option>
           </select>
+          
+          <button 
+            onClick={toggleViewMode} 
+            className="btn btn-view-toggle"
+            title={`Switch to ${viewMode === 'card' ? 'table' : 'card'} view`}
+          >
+            {viewMode === 'card' ? 'Table View' : 'Card View'}
+          </button>
         </div>
         
         <button 
@@ -162,6 +176,12 @@ const TechnologyManagement = () => {
       
       {filteredTechnologies.length === 0 ? (
         <div className="no-results">No technologies found matching your criteria.</div>
+      ) : viewMode === 'card' ? (
+        <TechnologyList 
+          technologies={filteredTechnologies}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
       ) : (
         <div className="technologies-table-container">
           <table className="technologies-table">

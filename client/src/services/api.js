@@ -268,6 +268,11 @@ export const loginWithGoogle = () => {
 export const registerUser = async (userData) => {
   try {
     const response = await api.post('/auth/register', userData);
+    // Store user data in context
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+    }
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -460,6 +465,66 @@ export const getAllChangeRequests = async () => {
 export const reviewChangeRequest = async (id, reviewData) => {
   try {
     const response = await api.put(`/technologies/change-requests/${id}`, reviewData);
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+// Get invitations for current tenant
+export const getTenantInvitations = async () => {
+  try {
+    const response = await api.get('/tenants/invitations');
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+// Create a new invitation
+export const createInvitation = async (invitationData) => {
+  try {
+    const response = await api.post('/tenants/invitations', invitationData);
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+// Revoke an invitation
+export const revokeInvitation = async (invitationId) => {
+  try {
+    const response = await api.delete(`/tenants/invitations/${invitationId}`);
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+// Join tenant using invitation code
+export const joinTenantByInvitation = async (invitationCode) => {
+  try {
+    const response = await api.post('/tenants/join-by-invitation', { invitationCode });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+// Leave current tenant organization
+export const leaveTenant = async () => {
+  try {
+    const response = await api.post('/tenants/leave');
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+// Create a new tenant organization
+export const createTenantOrganization = async (organizationData) => {
+  try {
+    const response = await api.post('/tenants', organizationData);
     return response.data;
   } catch (error) {
     throw handleApiError(error);

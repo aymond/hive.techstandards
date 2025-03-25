@@ -15,7 +15,22 @@
     "securityConsiderations": "Regular patching required, secure configuration best practices must be followed, privileged access management required.",
     "costConsiderations": "Licensing is based on processor cores or named users, additional costs for Enterprise Edition features.",
     "complianceRequirements": "Quarterly patch updates recommended, support lifecycle policies apply.",
-    "licenseType": "Commercial"
+    "licenseType": "Commercial",
+    "additionalVersions": [
+      {
+        "versionNumber": "18c",
+        "releaseDate": "2018-02-01",
+        "endOfSupportDate": "2021-06-30",
+        "status": "Deprecated",
+        "notes": "Previous generation database with reduced support"
+      },
+      {
+        "versionNumber": "21c",
+        "releaseDate": "2021-01-15",
+        "status": "Planned",
+        "notes": "Next generation database with enhanced features in development"
+      }
+    ]
   },
   {
     "name": "Oracle WebLogic Server",
@@ -178,5 +193,39 @@
     "costConsiderations": "Subscription-based pricing per managed node.",
     "complianceRequirements": "Regular updates, configuration management standards.",
     "licenseType": "Subscription"
+  },
+  {
+    "name": "MongoDB",
+    "type": "Database",
+    "version": "6.0",
+    "vendor": "MongoDB Inc.",
+    "category": "Database Management System",
+    "status": "Approved",
+    "businessImpact": "High",
+    "description": "MongoDB is a document-oriented NoSQL database used for high-volume data storage and complex applications. It uses JSON-like documents with schema.",
+    "useCase": "Real-time analytics, content management, IoT applications, and mobile applications requiring flexible schema design.",
+    "limitations": "Not ideal for complex transactions requiring ACID properties across multiple operations or documents without additional configuration.",
+    "alternatives": "Couchbase, DocumentDB, Cassandra",
+    "documentationUrl": "https://docs.mongodb.com/",
+    "securityConsiderations": "Requires proper authentication, authorization, and network security configuration. Default installations should be secured against unauthorized access.",
+    "costConsiderations": "Open source Community Edition available, Enterprise versions require subscription.",
+    "complianceRequirements": "Enterprise Advanced version offers HIPAA, PCI DSS, and SOC compliance features.",
+    "licenseType": "Open Source (Community Edition) / Commercial (Enterprise)",
+    "additionalVersions": [
+      {
+        "versionNumber": "5.0",
+        "releaseDate": "2021-07-13",
+        "endOfSupportDate": "2024-07-01",
+        "status": "Active",
+        "notes": "Previous stable version with time series and sharding enhancements"
+      },
+      {
+        "versionNumber": "4.4",
+        "releaseDate": "2020-09-09",
+        "endOfSupportDate": "2023-09-01",
+        "status": "Deprecated",
+        "notes": "Legacy version with reduced support"
+      }
+    ]
   }
 ] 
